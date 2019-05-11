@@ -4,20 +4,16 @@ import os
 import subprocess
 
 serial_number = '2003080800'
-refresh = '2d'
-update_retry = '15m'
-expiry = '2w'
-ttl = '1h'
+refresh = '172800'
+update_retry = '900'
+expiry = '1209600'
+ttl = '3600'
 
 client = pymongo.MongoClient('mongodb://192.168.56.1:27017/')
 db = client['licenta']
 collection = db['zones']
 
-# for doc in collection.find():
-#     print(doc)
-
 object = collection.find_one({'_id': ObjectId("5cd5c0dbedb355c0a630e15a")})
-
 zone_file_path = '/var/named/{0}.zone'.format(object['domain'])
 
 # check if a zone file for this domain already exists
@@ -34,9 +30,9 @@ with open(zone_file_path, "w+") as zone_file:
     zone_file.write('$TTL ' + ttl + '\n')
 
     zone_file.write('@\tIN\tSOA\tns1.' + object['domain'] + '.'
-                    + '\t' + object['admin_mail'] +
-                    '. (' + serial_number + refresh + update_retry
-                    + expiry + ttl + ')\n')
+                    + '\t' + object['admin_mail']
+                    + '. (' + serial_number + ' ' + refresh + ' '
+                    + update_retry + ' ' + expiry + ' ' + ttl + ')\n')
 
     zone_file.write('\tIN\tNS\t' + 'ns1.' + object['domain'] + '.\n')
     zone_file.write('\tIN\tMX\t' + object['mail_priority'] + '\t' + object['mail_host'] + '.' + object['domain'] + '.\n')
@@ -55,6 +51,6 @@ with open(dns_config_file_path, 'a+') as file:
     file.write('};\n')
 
 # reload bind9 server
-subprocess.check_output(['systemctl', 'reload', 'named.service'])
+subprocess.check_output(['systemctl', 'restart', 'named.service'])
 
 
