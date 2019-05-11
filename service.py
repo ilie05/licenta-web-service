@@ -1,6 +1,7 @@
 import pymongo
 from bson.objectid import ObjectId
 import os
+import subprocess
 
 serial_number = '2003080800'
 refresh = '2d'
@@ -42,6 +43,18 @@ with open(zone_file_path, "w+") as zone_file:
     zone_file.write('\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'] + '.\n')
     zone_file.write('ns1\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'] + '\n')
     zone_file.write(object['mail_host'] + '\tIN\tA' + object['mail_ip_host'] + '\n')
-    zone_file.write(object['ip_host'] + '\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'])
+    zone_file.write(object['ip_host'] + '\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'] + '\n')
+
+
+dns_config_file_path = '/etc/named.conf'
+with open(dns_config_file_path, 'a+') as file:
+    file.write('\n')
+    file.write('zone ' + object['domain'] + ' IN {\n')
+    file.write('\ttype master;\n')
+    file.write('\tfile \"' + zone_file_path + '\";\n')
+    file.write('};\n')
+
+# reload bind9 server
+subprocess.check_output(['systemctl', 'reload', 'named.service'])
 
 
