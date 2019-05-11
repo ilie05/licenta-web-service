@@ -49,9 +49,9 @@ with open(zone_file_path, "w+") as zone_file:
 dns_config_file_path = '/etc/named.conf'
 with open(dns_config_file_path, 'a+') as file:
     file.write('\n')
-    file.write('zone ' + object['domain'] + ' IN {\n')
+    file.write('zone \"' + object['domain'] + '\" IN {\n')
     file.write('\ttype master;\n')
-    file.write('\tfile \"' + object['domain'] + '\";\n')
+    file.write('\tfile \"' + object['domain'] + '.zone\";\n')
     file.write('};\n')
 
 # reload bind9 server
