@@ -40,9 +40,9 @@ with open(zone_file_path, "w+") as zone_file:
 
     zone_file.write('\tIN\tNS\t' + 'ns1.' + object['domain'] + '.\n')
     zone_file.write('\tIN\tMX\t' + object['mail_priority'] + '\t' + object['mail_host'] + '.' + object['domain'] + '.\n')
-    zone_file.write('\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'] + '.\n')
+    zone_file.write('\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'] + '\n')
     zone_file.write('ns1\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'] + '\n')
-    zone_file.write(object['mail_host'] + '\tIN\tA' + object['mail_ip_host'] + '\n')
+    zone_file.write(object['mail_host'] + '\tIN\tA\t' + object['mail_ip_host'] + '\n')
     zone_file.write(object['ip_host'] + '\tIN\t' + object['ip_addr_type'] + '\t' + object['ip_address'] + '\n')
 
 
