@@ -51,7 +51,7 @@ with open(dns_config_file_path, 'a+') as file:
     file.write('\n')
     file.write('zone ' + object['domain'] + ' IN {\n')
     file.write('\ttype master;\n')
-    file.write('\tfile \"' + zone_file_path + '\";\n')
+    file.write('\tfile \"' + object['domain'] + '\";\n')
     file.write('};\n')
 
 # reload bind9 server
