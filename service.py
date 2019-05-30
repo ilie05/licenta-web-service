@@ -30,7 +30,7 @@ with open(zone_file_path, "w+") as zone_file:
     zone_file.write('$TTL ' + ttl + '\n')
 
     zone_file.write('@\tIN\tSOA\tns1.' + object['domain'] + '.'
-                    + '\t' + object['admin_mail']
+                    + '\t' + object['admin_mail'].repalce('@', '.')
                     + '. (' + serial_number + ' ' + refresh + ' '
                     + update_retry + ' ' + expiry + ' ' + ttl + ')\n')
 
