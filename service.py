@@ -50,7 +50,8 @@ with open(dns_config_file_path, 'a+') as file:
     file.write('\tfile \"' + object['domain'] + '.zone\";\n')
     file.write('};\n')
 
-# reload bind9 server
+
+# restart bind9 server
 subprocess.check_output(['systemctl', 'restart', 'named.service'])
 
 
