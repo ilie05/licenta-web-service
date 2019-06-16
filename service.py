@@ -16,7 +16,7 @@ collection = db['zones']
 # object = collection.find_one({'_id': ObjectId("5cd5c0dbedb355c0a630e15a")})
 # zone_file_path = '/var/named/{0}.zone'.format(object['domain'])
 
-last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(1)[0]
+last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[2]
 print(last_record)
 
 # exit(0)
@@ -25,26 +25,109 @@ print(last_record)
 #     print("zone file already exists")
 #     exit(-1)
 
-zone_folder = 'var/named/'
+var_named_folder = 'var/named/'
 
 
-def create_zone_file(record):
+def integrate_zone(record):
     domain_details = record['domain_details']
-    ns_records = record['ns_records']
-    hosts_records = record['hosts_records']
-    mails_records = record['mails_records']
-
-    zone_file_path = '{0}{1}.zone'.format(zone_folder, domain_details['domain_name'])
-
-    # delete file if exists
-    if os.path.isfile(zone_file_path):
-        os.remove(zone_file_path)
+    zone_folder = var_named_folder + domain_details['domain_name']
+    if not os.path.exists(zone_folder):
+        os.makedirs(zone_folder)
+    zone_file_path = '{0}/{1}.zone'.format(zone_folder, domain_details['domain_name'])
+    reverse_zone_file_path = '{0}/{1}.rr.zone'.format(zone_folder, domain_details['domain_name'])
 
     """
     TODO: Delete reference from   /etc/named.conf   file
     """
 
-    # 'w+' mode create if not exists and overwrites the content
+    create_direct_zone_file(record, zone_file_path)
+    create_reverse_zone_file(record, reverse_zone_file_path)
+
+
+def create_reverse_zone_file(record, reverse_zone_file_path):
+    domain_details = record['domain_details']
+    ns_records = record['ns_records']
+    hosts_records = record['hosts_records']
+    mails_records = record['mails_records']
+
+    with open(reverse_zone_file_path, "w+") as reverse_zone_file:
+
+        reverse_zone_file.write('$ORIGIN {}.\n'.format(domain_details['domain_reverse_addr']))  # $ORIGIN 184.56.128.in-addr.arpa.
+
+        if 'domain_ttl' in domain_details:
+            domain_ttl = domain_details['domain_ttl']
+        reverse_zone_file.write('$TTL\t{}\n'.format(domain_ttl))  # $TTL 86400
+
+        original_admin_mail = domain_details['original_admin_mail']
+        if original_admin_mail.split('@')[-1] == domain_details['domain_name']:
+            admin_mail = original_admin_mail.split('@')[0]
+        else:
+            admin_mail = domain_details['admin_mail'] + '.'
+
+        # find first internal NS record if exists
+        first_ns_internal = None
+        for record in ns_records:
+            if 'ns_ip' in record:
+                first_ns_internal = record
+                break
+
+        ns_internal_name = ''
+        if first_ns_internal:
+            ns_internal_name = first_ns_internal['ns']
+        else:
+            ns_internal_name = ns_records[0]['ns'] + '.'
+        # SOA record
+        reverse_zone_file.write(
+            '@\tIN\tSOA\t{0} {1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
+                                                                 update_retry, expiry, nxdomain_ttl))
+        reverse_zone_file.write("\n\n; Name server records\n\n")
+        # NS records
+        for record in ns_records:
+            ns_ttl = record['ns_ttl']
+            if not ns_ttl:
+                ns_ttl = ''
+            reverse_zone_file.write('\t{0}\tIN\tNS\t{1}\n'.format(ns_ttl, record['ns']))
+
+            if 'ns_ip' in record:
+                reverse_zone_file.write('{0}\t{1}\tIN\tPTR\t{2}\n'.format(record['ns_ip_reverse'], ns_ttl,
+                                                                          record['ns'] + '.' + domain_details[
+                                                                              'domain_name'] + '.'))
+            reverse_zone_file.write("\n")
+
+        reverse_zone_file.write("\n\n; Host RECORDS \n\n")
+        for record in hosts_records:
+            host_name_ttl = record['host_name_ttl']
+            if not host_name_ttl:
+                host_name_ttl = ''
+            reverse_zone_file.write('{0}\t{1}\tIN\tPTR\t{2}\n'.format(record['host_name_ip_reverse'], host_name_ttl,
+                                                                      record['host_name'] + '.' + domain_details[
+                                                                          'domain_name'] + '.'))
+            reverse_zone_file.write("\n")
+
+        reverse_zone_file.write("\n\n; Mail RECORDS \n\n")
+        for record in mails_records:
+            mail_ttl = record['mail_ttl']
+            if not mail_ttl:
+                mail_ttl = ''
+
+            # check if is internal record
+            if 'mail_ip_host' in record:
+                reverse_zone_file.write('{0}\t{1}\tIN\tPTR\t{2}\n'.format(record['mail_ip_host_reverse'], mail_ttl,
+                                                                          record['mail_host'] + '.' + domain_details[
+                                                                              'domain_name'] + '.'))
+            reverse_zone_file.write('\n')
+
+
+
+def create_direct_zone_file(record, zone_file_path):
+    domain_details = record['domain_details']
+    ns_records = record['ns_records']
+    hosts_records = record['hosts_records']
+    mails_records = record['mails_records']
+
+    record_type = domain_details['record_type']
+
+    # 'w+' mode create if not exists or overwrites the content
     with open(zone_file_path, "w+") as zone_file:
 
         zone_file.write('$ORIGIN {}.\n'.format(domain_details['domain_name']))  # $ORIGIN domain1.org.
@@ -60,11 +143,22 @@ def create_zone_file(record):
         else:
             admin_mail = domain_details['admin_mail'] + '.'
 
+        # find first internal NS record if exists
+        first_ns_internal = None
+        for record in ns_records:
+            if 'ns_ip' in record:
+                first_ns_internal = record
+                break
+
+        ns_internal_name = ''
+        if first_ns_internal:
+            ns_internal_name = first_ns_internal['ns']
+        else:
+            ns_internal_name = ns_records[0]['ns'] + '.'
         # SOA record
-        zone_file.write('@\tIN\tSOA\t{0}.{1}. {2} ({3} {4} {5} {6} {7})\n'.format(ns_records[0]['ns'],
-                                                                                  domain_details['domain_name'],
-                                                                                  admin_mail, serial_number, refresh,
-                                                                                  update_retry, expiry, nxdomain_ttl))
+        zone_file.write(
+            '@\tIN\tSOA\t{0} {1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
+                                                                 update_retry, expiry, nxdomain_ttl))
 
         zone_file.write("\n\n; Name server records\n\n")
         # NS records
@@ -72,9 +166,12 @@ def create_zone_file(record):
             ns_ttl = record['ns_ttl']
             if not ns_ttl:
                 ns_ttl = ''
-            zone_file.write('\t\tIN\tNS\t{0}\n'.format(record['ns']))
-            zone_file.write(
-                '{0}\t{1}\tIN\t{2}\t{3}\n'.format(record['ns'], ns_ttl, record['ns_ip_addr_type'], record['ns_ip']))
+            zone_file.write('\t{0}\tIN\tNS\t{1}\n'.format(ns_ttl, record['ns']))
+
+            # check if is internal record
+            if 'ns_ip' in record:
+                zone_file.write(
+                    '{0}\t{1}\tIN\t{2}\t{3}\n'.format(record['ns'], ns_ttl, record_type, record['ns_ip']))
             zone_file.write("\n")
 
         zone_file.write("\n; Host records\n\n")
@@ -83,13 +180,17 @@ def create_zone_file(record):
             host_name_ttl = record['host_name_ttl']
             if not host_name_ttl:
                 host_name_ttl = ''
-            zone_file.write(
-                '{0}\t{1}\tIN\t{2}\t{3}\n'.format(record['host_name'], host_name_ttl, record['host_name_ip_addr_type'],
-                                                  record['host_name_ip']))
+
+            zone_file.write('{0}\t{1}\tIN\t{2}\t{3}\n'.format(record['host_name'], host_name_ttl, record_type,
+                                                              record['host_name_ip']))
             if record['host_cname']:
                 zone_file.write(
                     '{0}\t{1}\tIN\tCNAME\t{2}\n'.format(record['host_cname'], host_name_ttl, record['host_name']))
+            if record['host_txt']:
+                zone_file.write(
+                    '{0}\t{1}\tIN\tTXT\t"{2}"\n'.format(record['host_name'], host_name_ttl, record['host_txt']))
             zone_file.write("\n")
+
 
         zone_file.write("\n\n; Mail records\n\n")
         # Mail records
@@ -99,15 +200,19 @@ def create_zone_file(record):
             if not mail_ttl:
                 mail_ttl = ''
 
-            if 'mail_addr_type' in record:
+            # check if is internal record
+            if 'mail_ip_host' in record:
                 zone_file.write(
                     '\t{0}\tIN\tMX\t{1}\t{2}\n'.format(mail_ttl, record['mail_preference'], record['mail_host']))
-                zone_file.write('{0}\t{1}\t{2}\t{3}\n'.format(record['mail_host'], mail_ttl, record['mail_addr_type'],
-                                                              record['mail_ip_host']))
+                zone_file.write('{0}\t{1}\tIN\t{2}\t{3}\n'.format(record['mail_host'], mail_ttl, record_type,
+                                                                  record['mail_ip_host']))
 
                 if record['mail_cname']:
                     zone_file.write(
                         '{0}\t{1}\tIN\tCNAME\t{2}\n'.format(record['mail_cname'], mail_ttl, record['mail_host']))
+                if record['mail_txt']:
+                    zone_file.write(
+                        '{0}\t{1}\tIN\tTXT\t"{2}"\n'.format(record['mail_host'], mail_ttl, record['mail_txt']))
             else:
                 zone_file.write(
                     '\t{0}\tIN\tMX\t{1}\t{2}\n'.format(mail_ttl, record['mail_preference'], record['mail_host']))
@@ -128,6 +233,6 @@ def create_zone_file(record):
 # subprocess.check_output(['systemctl', 'restart', 'named.service'])
 
 if __name__ == '__main__':
-    create_zone_file(last_record)
+    integrate_zone(last_record)
 
 
