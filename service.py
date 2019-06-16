@@ -107,12 +107,14 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
             ns_ttl = record['ns_ttl']
             if not ns_ttl:
                 ns_ttl = ''
-            reverse_zone_file.write('\t{0}\tIN\tNS\t{1}\n'.format(ns_ttl, record['ns']))
 
             if 'ns_ip' in record:
+                reverse_zone_file.write('\t{0}\tIN\tNS\t{1}\n'.format(ns_ttl, record['ns']))
                 reverse_zone_file.write('{0}.\t{1}\tIN\tPTR\t{2}\n'.format(record['ns_ip_reverse'], ns_ttl,
                                                                           record['ns'] + '.' + domain_details[
                                                                               'domain_name'] + '.'))
+            else:
+                reverse_zone_file.write('\t{0}\tIN\tNS\t{1}.\n'.format(ns_ttl, record['ns']))
             reverse_zone_file.write("\n")
 
         reverse_zone_file.write("\n\n; Host RECORDS \n\n")
