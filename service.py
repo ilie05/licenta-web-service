@@ -20,7 +20,7 @@ var_named_folder = '/var/named/'
 etc_named_folder = '/etc/named/'
 
 # time interval for query the mongo collection
-QUERY_INTERVAL = 60
+QUERY_INTERVAL = 240
 
 
 def delete_domain(record):
@@ -43,6 +43,7 @@ def integrate_zone(record):
     zone_folder = var_named_folder + domain_details['domain_name']
     if not os.path.exists(zone_folder):
         os.makedirs(zone_folder)
+
     zone_file_path = '{0}/{1}.zone'.format(zone_folder, domain_details['domain_name'])
     reverse_zone_file_path = '{0}/{1}.rr.zone'.format(zone_folder, domain_details['domain_name'])
 
@@ -52,7 +53,6 @@ def integrate_zone(record):
 
     if not os.path.exists(etc_named_folder):
         os.makedirs(etc_named_folder)
-
 
     # create config file for domain
     with open(etc_named_folder + domain_details['domain_name'] + '.conf', 'w+') as conf_file:
@@ -278,23 +278,30 @@ def main():
 
         records = collection.find({'modify': {'$gte': time_frame}})
         for record in records:
+            print('processing record ...')
+            print(record)
 
+            if record['status'] == 'delete':
+                delete_domain(record)
+                print("Records deleted:")
+                print(record)
+            elif record['status'] == 'insert':
+                integrate_zone(record)
+                print("Record inserted:")
+                print(record)
+            else:
+                print("Wrong record status: ")
+                print(record)
+
+            # restart bind9 server
+            try:
+                subprocess.check_output(['systemctl', 'restart', 'named.service'])
+            except Exception as e:
+                print(str(e))
+                print("BIND 9 server crashed after {0} operation on record {1}".format(record['status'], record))
 
         sleep(QUERY_INTERVAL)
 
 
 if __name__ == '__main__':
-    # last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[1]
-# print(last_record)
-
-    # integrate_zone(last_record)
-
-    # delete_domain(last_record)
-
     main()
-
-    # restart bind9 server
-    try:
-        subprocess.check_output(['systemctl', 'restart', 'named.service'])
-    except Exception as e:
-        print(str(e))
