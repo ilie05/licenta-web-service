@@ -13,19 +13,11 @@ client = pymongo.MongoClient('mongodb://192.168.56.1:27017/')
 db = client['licenta']
 collection = db['zones']
 
-# object = collection.find_one({'_id': ObjectId("5cd5c0dbedb355c0a630e15a")})
-# zone_file_path = '/var/named/{0}.zone'.format(object['domain'])
-
 last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[2]
 print(last_record)
 
-# exit(0)
-# # check if a zone file for this domain already exists
-# if os.path.isfile(zone_file_path):
-#     print("zone file already exists")
-#     exit(-1)
-
 var_named_folder = 'var/named/'
+etc_named_folder = 'etc/named/'
 
 
 def integrate_zone(record):
@@ -36,12 +28,41 @@ def integrate_zone(record):
     zone_file_path = '{0}/{1}.zone'.format(zone_folder, domain_details['domain_name'])
     reverse_zone_file_path = '{0}/{1}.rr.zone'.format(zone_folder, domain_details['domain_name'])
 
+    # create zone files
+    create_direct_zone_file(record, zone_file_path)
+    create_reverse_zone_file(record, reverse_zone_file_path)
+
     """
     TODO: Delete reference from   /etc/named.conf   file
     """
+    if not os.path.exists(etc_named_folder):
+        os.makedirs(etc_named_folder)
 
-    create_direct_zone_file(record, zone_file_path)
-    create_reverse_zone_file(record, reverse_zone_file_path)
+
+    # create config file for domain
+    with open(etc_named_folder + domain_details['domain_name'] + '.conf', 'w+') as conf_file:
+        conf_file.write('zone "{0}" IN {{\n'.format(domain_details['domain_name']))
+        conf_file.write('\ttype master;\n')
+        conf_file.write('\tfile "{}";\n'.format(domain_details['domain_name'] + '/' + domain_details['domain_name'] + '.zone'))
+        conf_file.write('};\n\n')
+
+        conf_file.write('zone "{}" IN {{\n'.format(domain_details['domain_reverse_addr']))
+        conf_file.write('\ttype master;\n')
+        conf_file.write('\tfile "{}";\n'.format(domain_details['domain_name'] + '/' + domain_details['domain_name'] + '.rr.zone'))
+        conf_file.write('};\n\n')
+
+    # include config file for domain in /etc/named.conf file
+    include_in_conf_file(domain_details['domain_name'])
+
+
+def include_in_conf_file(domain_name):
+    with open("etc/named.conf", "r") as f:
+        lines = f.readlines()
+    with open("etc/named.conf", "w") as f:
+        for line in lines:
+            if domain_name not in line:
+                f.write(line)
+        f.write('\ninclude "/etc/named/{}.conf";\n'.format(domain_name))
 
 
 def create_reverse_zone_file(record, reverse_zone_file_path):
@@ -116,7 +137,6 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
                                                                           record['mail_host'] + '.' + domain_details[
                                                                               'domain_name'] + '.'))
             reverse_zone_file.write('\n')
-
 
 
 def create_direct_zone_file(record, zone_file_path):
