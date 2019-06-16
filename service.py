@@ -2,6 +2,7 @@ import pymongo
 from bson.objectid import ObjectId
 import os
 import subprocess
+import shutil
 
 serial_number = '2003080800'
 refresh = '172800'
@@ -13,11 +14,23 @@ client = pymongo.MongoClient('mongodb://192.168.56.1:27017/')
 db = client['licenta']
 collection = db['zones']
 
-last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[0]
-print(last_record)
-
 var_named_folder = '/var/named/'
 etc_named_folder = '/etc/named/'
+
+
+def delete_domain(record):
+    domain_details = record['domain_details']
+    zone_folder = var_named_folder + domain_details['domain_name']
+    # remove folder with zone files
+    if os.path.isdir(zone_folder):
+        shutil.rmtree(zone_folder, False)
+
+    # remove zone .conf file
+    if os.path.isfile(etc_named_folder + domain_details['domain_name'] + '.conf'):
+        os.remove(etc_named_folder + domain_details['domain_name'] + '.conf')
+
+    # remove 'include...' line from 'named.conf' file
+    include_in_conf_file(domain_details['domain_name'], True)
 
 
 def integrate_zone(record):
@@ -32,9 +45,6 @@ def integrate_zone(record):
     create_direct_zone_file(record, zone_file_path)
     create_reverse_zone_file(record, reverse_zone_file_path)
 
-    """
-    TODO: Delete reference from   /etc/named.conf   file
-    """
     if not os.path.exists(etc_named_folder):
         os.makedirs(etc_named_folder)
 
@@ -55,14 +65,22 @@ def integrate_zone(record):
     include_in_conf_file(domain_details['domain_name'])
 
 
-def include_in_conf_file(domain_name):
+def include_in_conf_file(domain_name, remove=False):
+    """
+    :param domain_name: Name of domain to be included
+    :param remove: if False ---> remove all existing lines that contains domain_name and include the new address,
+                    if True ---> just remove all existing lines with domain_name in
+    :return:
+    """
+
     with open("/etc/named.conf", "r") as f:
         lines = f.readlines()
     with open("/etc/named.conf", "w") as f:
         for line in lines:
             if domain_name not in line:
                 f.write(line)
-        f.write('\ninclude "/etc/named/{}.conf";\n'.format(domain_name))
+        if not remove:
+            f.write('include "/etc/named/{}.conf";\n'.format(domain_name))
 
 
 def create_reverse_zone_file(record, reverse_zone_file_path):
@@ -247,7 +265,12 @@ def create_direct_zone_file(record, zone_file_path):
 
 
 if __name__ == '__main__':
-    integrate_zone(last_record)
+    last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[1]
+    print(last_record)
+
+    # integrate_zone(last_record)
+
+    delete_domain(last_record)
 
     # restart bind9 server
     subprocess.check_output(['systemctl', 'restart', 'named.service'])
