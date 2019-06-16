@@ -110,7 +110,7 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
             reverse_zone_file.write('\t{0}\tIN\tNS\t{1}\n'.format(ns_ttl, record['ns']))
 
             if 'ns_ip' in record:
-                reverse_zone_file.write('{0}\t{1}\tIN\tPTR\t{2}\n'.format(record['ns_ip_reverse'], ns_ttl,
+                reverse_zone_file.write('{0}.\t{1}\tIN\tPTR\t{2}\n'.format(record['ns_ip_reverse'], ns_ttl,
                                                                           record['ns'] + '.' + domain_details[
                                                                               'domain_name'] + '.'))
             reverse_zone_file.write("\n")
@@ -120,7 +120,7 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
             host_name_ttl = record['host_name_ttl']
             if not host_name_ttl:
                 host_name_ttl = ''
-            reverse_zone_file.write('{0}\t{1}\tIN\tPTR\t{2}\n'.format(record['host_name_ip_reverse'], host_name_ttl,
+            reverse_zone_file.write('{0}.\t{1}\tIN\tPTR\t{2}\n'.format(record['host_name_ip_reverse'], host_name_ttl,
                                                                       record['host_name'] + '.' + domain_details[
                                                                           'domain_name'] + '.'))
             reverse_zone_file.write("\n")
@@ -133,7 +133,7 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
 
             # check if is internal record
             if 'mail_ip_host' in record:
-                reverse_zone_file.write('{0}\t{1}\tIN\tPTR\t{2}\n'.format(record['mail_ip_host_reverse'], mail_ttl,
+                reverse_zone_file.write('{0}.\t{1}\tIN\tPTR\t{2}\n'.format(record['mail_ip_host_reverse'], mail_ttl,
                                                                           record['mail_host'] + '.' + domain_details[
                                                                               'domain_name'] + '.'))
             reverse_zone_file.write('\n')
