@@ -16,8 +16,8 @@ collection = db['zones']
 last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[0]
 print(last_record)
 
-var_named_folder = 'var/named/'
-etc_named_folder = 'etc/named/'
+var_named_folder = '/var/named/'
+etc_named_folder = '/etc/named/'
 
 
 def integrate_zone(record):
@@ -56,9 +56,9 @@ def integrate_zone(record):
 
 
 def include_in_conf_file(domain_name):
-    with open("etc/named.conf", "r") as f:
+    with open("/etc/named.conf", "r") as f:
         lines = f.readlines()
-    with open("etc/named.conf", "w") as f:
+    with open("/etc/named.conf", "w") as f:
         for line in lines:
             if domain_name not in line:
                 f.write(line)
@@ -186,12 +186,14 @@ def create_direct_zone_file(record, zone_file_path):
             ns_ttl = record['ns_ttl']
             if not ns_ttl:
                 ns_ttl = ''
-            zone_file.write('\t{0}\tIN\tNS\t{1}\n'.format(ns_ttl, record['ns']))
 
             # check if is internal record
             if 'ns_ip' in record:
+                zone_file.write('\t{0}\tIN\tNS\t{1}\n'.format(ns_ttl, record['ns']))
                 zone_file.write(
                     '{0}\t{1}\tIN\t{2}\t{3}\n'.format(record['ns'], ns_ttl, record_type, record['ns_ip']))
+            else:
+                zone_file.write('\t{0}\tIN\tNS\t{1}.\n'.format(ns_ttl, record['ns']))
             zone_file.write("\n")
 
         zone_file.write("\n; Host records\n\n")
@@ -235,7 +237,7 @@ def create_direct_zone_file(record, zone_file_path):
                         '{0}\t{1}\tIN\tTXT\t"{2}"\n'.format(record['mail_host'], mail_ttl, record['mail_txt']))
             else:
                 zone_file.write(
-                    '\t{0}\tIN\tMX\t{1}\t{2}\n'.format(mail_ttl, record['mail_preference'], record['mail_host']))
+                    '\t{0}\tIN\tMX\t{1}\t{2}.\n'.format(mail_ttl, record['mail_preference'], record['mail_host']))
 
             zone_file.write('\n')
 
