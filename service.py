@@ -99,7 +99,7 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
             ns_internal_name = ns_records[0]['ns'] + '.'
         # SOA record
         reverse_zone_file.write(
-            '@\tIN\tSOA\t{0} {1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
+            '@\tIN\tSOA\t{0}\t{1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
                                                                  update_retry, expiry, nxdomain_ttl))
         reverse_zone_file.write("\n\n; Name server records\n\n")
         # NS records
@@ -179,10 +179,12 @@ def create_direct_zone_file(record, zone_file_path):
             ns_internal_name = ns_records[0]['ns'] + '.'
         # SOA record
         zone_file.write(
-            '@\tIN\tSOA\t{0} {1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
+            '@\tIN\tSOA\t{0}\t{1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
                                                                  update_retry, expiry, nxdomain_ttl))
 
-        zone_file.write("\n\n; Name server records\n\n")
+        zone_file.write('\t\tIN\tA\t{}\n'.format(domain_details['domain_ip_address']))
+
+        zone_file.write("\n; Name server records\n\n")
         # NS records
         for record in ns_records:
             ns_ttl = record['ns_ttl']
