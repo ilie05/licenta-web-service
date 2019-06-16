@@ -270,13 +270,12 @@ def create_direct_zone_file(record, zone_file_path):
 
 
 def main():
-    collection = db['test']
 
     while True:
         time_frame = datetime.datetime.utcnow() - datetime.timedelta(seconds=QUERY_INTERVAL)
         print("Waiting...")
 
-        records = collection.find({'modify': {'$gte': time_frame}})
+        records = collection.find({'modify_time': {'$gte': time_frame}})
         for record in records:
             print('processing record ...')
             print(record)
