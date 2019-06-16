@@ -13,7 +13,7 @@ client = pymongo.MongoClient('mongodb://192.168.56.1:27017/')
 db = client['licenta']
 collection = db['zones']
 
-last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[2]
+last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[0]
 print(last_record)
 
 var_named_folder = 'var/named/'
@@ -240,19 +240,8 @@ def create_direct_zone_file(record, zone_file_path):
             zone_file.write('\n')
 
 
-# dns_config_file_path = '/etc/named.conf'
-# with open(dns_config_file_path, 'a+') as file:
-#     file.write('\n')
-#     file.write('zone \"' + object['domain'] + '\" IN {\n')
-#     file.write('\ttype master;\n')
-#     file.write('\tfile \"' + object['domain'] + '.zone\";\n')
-#     file.write('};\n')
-#
-#
-# # restart bind9 server
-# subprocess.check_output(['systemctl', 'restart', 'named.service'])
-
 if __name__ == '__main__':
     integrate_zone(last_record)
 
-
+    # restart bind9 server
+    subprocess.check_output(['systemctl', 'restart', 'named.service'])
