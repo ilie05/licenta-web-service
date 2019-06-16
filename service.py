@@ -1,6 +1,8 @@
 import pymongo
 from bson.objectid import ObjectId
 import os
+from time import sleep
+import datetime
 import subprocess
 import shutil
 
@@ -16,6 +18,9 @@ collection = db['zones']
 
 var_named_folder = '/var/named/'
 etc_named_folder = '/etc/named/'
+
+# time interval for query the mongo collection
+QUERY_INTERVAL = 60
 
 
 def delete_domain(record):
@@ -264,13 +269,32 @@ def create_direct_zone_file(record, zone_file_path):
             zone_file.write('\n')
 
 
+def main():
+    collection = db['test']
+
+    while True:
+        time_frame = datetime.datetime.utcnow() - datetime.timedelta(seconds=QUERY_INTERVAL)
+        print("Waiting...")
+
+        records = collection.find({'modify': {'$gte': time_frame}})
+        for record in records:
+
+
+        sleep(QUERY_INTERVAL)
+
+
 if __name__ == '__main__':
-    last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[1]
-    print(last_record)
+    # last_record = collection.find({}).sort('_id', pymongo.DESCENDING).limit(3)[1]
+# print(last_record)
 
     # integrate_zone(last_record)
 
-    delete_domain(last_record)
+    # delete_domain(last_record)
+
+    main()
 
     # restart bind9 server
-    subprocess.check_output(['systemctl', 'restart', 'named.service'])
+    try:
+        subprocess.check_output(['systemctl', 'restart', 'named.service'])
+    except Exception as e:
+        print(str(e))
