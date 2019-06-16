@@ -273,24 +273,22 @@ def main():
 
     while True:
         time_frame = datetime.datetime.utcnow() - datetime.timedelta(seconds=QUERY_INTERVAL)
-        print("Waiting...")
-
         records = collection.find({'modify_time': {'$gte': time_frame}})
         for record in records:
             print('processing record ...')
-            print(record)
+            delete_domain(record['_id'])
 
             if record['status'] == 'delete':
-                delete_domain(record)
+                delete_domain(record['_id'])
                 print("Records deleted:")
                 print(record)
             elif record['status'] == 'insert':
                 integrate_zone(record)
                 print("Record inserted:")
-                print(record)
+                delete_domain(record['_id'])
             else:
                 print("Wrong record status: ")
-                print(record)
+                delete_domain(record['_id'])
 
             # restart bind9 server
             try:
@@ -300,6 +298,7 @@ def main():
                 print("BIND 9 server crashed after {0} operation on record {1}".format(record['status'], record))
 
         sleep(QUERY_INTERVAL)
+        print("\n\nWaiting...\n\n")
 
 
 if __name__ == '__main__':
