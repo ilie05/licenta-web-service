@@ -122,7 +122,7 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
             ns_internal_name = ns_records[0]['ns'] + '.'
         # SOA record
         reverse_zone_file.write(
-            '@\tIN\tSOA\t{0}\t{1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
+            '@\t\tIN\tSOA\t{0}\t{1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
                                                                  update_retry, expiry, nxdomain_ttl))
         reverse_zone_file.write("\n\n; Name server records\n\n")
         # NS records
@@ -202,7 +202,7 @@ def create_direct_zone_file(record, zone_file_path):
             ns_internal_name = ns_records[0]['ns'] + '.'
         # SOA record
         zone_file.write(
-            '@\tIN\tSOA\t{0}\t{1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
+            '@\t\tIN\tSOA\t{0}\t{1} ({2} {3} {4} {5} {6})\n'.format(ns_internal_name, admin_mail, serial_number, refresh,
                                                                  update_retry, expiry, nxdomain_ttl))
 
         zone_file.write('\t\tIN\tA\t{}\n'.format(domain_details['domain_ip_address']))
@@ -252,7 +252,7 @@ def create_direct_zone_file(record, zone_file_path):
             # check if is internal record
             if 'mail_ip_host' in record:
                 zone_file.write(
-                    '\t{0}\tIN\tMX\t{1}\t{2}\n'.format(mail_ttl, record['mail_preference'], record['mail_host']))
+                    '{3}.\t{0}\tIN\tMX\t{1}\t{2}\n'.format(mail_ttl, record['mail_preference'], record['mail_host'], domain_details['domain_name']))
                 zone_file.write('{0}\t{1}\tIN\t{2}\t{3}\n'.format(record['mail_host'], mail_ttl, record_type,
                                                                   record['mail_ip_host']))
 
@@ -264,7 +264,7 @@ def create_direct_zone_file(record, zone_file_path):
                         '{0}\t{1}\tIN\tTXT\t"{2}"\n'.format(record['mail_host'], mail_ttl, record['mail_txt']))
             else:
                 zone_file.write(
-                    '\t{0}\tIN\tMX\t{1}\t{2}.\n'.format(mail_ttl, record['mail_preference'], record['mail_host']))
+                    '{3}.\t{0}\tIN\tMX\t{1}\t{2}.\n'.format(mail_ttl, record['mail_preference'], record['mail_host'], domain_details['domain_name']))
 
             zone_file.write('\n')
 
