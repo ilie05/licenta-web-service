@@ -132,7 +132,7 @@ def create_reverse_zone_file(record, reverse_zone_file_path):
                 ns_ttl = ''
 
             if 'ns_ip' in record:
-                reverse_zone_file.write('\t{0}\tIN\tNS\t{1}.\n'.format(ns_ttl, record['ns'] + domain_details['domain_name']))
+                reverse_zone_file.write('\t{0}\tIN\tNS\t{1}.{2}.\n'.format(ns_ttl, record['ns'], domain_details['domain_name']))
                 reverse_zone_file.write('{0}.\t{1}\tIN\tPTR\t{2}\n'.format(record['ns_ip_reverse'], ns_ttl,
                                                                           record['ns'] + '.' + domain_details[
                                                                               'domain_name'] + '.'))
@@ -270,10 +270,8 @@ def create_direct_zone_file(record, zone_file_path):
 
 
 def main():
-
     while True:
         time_frame = datetime.datetime.utcnow() - datetime.timedelta(seconds=QUERY_INTERVAL)
-
         records = collection.find({'modify_time': {'$gte': time_frame}})
         for record in records:
             print('processing record ...')
@@ -298,9 +296,8 @@ def main():
                 print(str(e))
                 print("BIND 9 server crashed after {0} operation on record {1}".format(record['status'], record))
 
-        sleep(QUERY_INTERVAL)
         print("\nWaiting...\n")
-
+        sleep(QUERY_INTERVAL)
 
 
 if __name__ == '__main__':
