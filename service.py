@@ -1,5 +1,4 @@
 import pymongo
-from bson.objectid import ObjectId
 import os
 from time import sleep
 import datetime
