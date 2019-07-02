@@ -5,13 +5,6 @@ import datetime
 import subprocess
 import shutil
 
-now = datetime.datetime.utcnow()
-serial_number = '{}{}{}{}{}{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
-refresh = '172800'
-update_retry = '900'
-expiry = '1209600'
-nxdomain_ttl = '3600'
-
 client = pymongo.MongoClient('mongodb://192.168.56.1:27017/')
 db = client['licenta']
 collection = db['zones']
@@ -21,6 +14,29 @@ etc_named_folder = '/etc/named/'
 
 # time interval for query the mongo collection
 QUERY_INTERVAL = 60
+
+
+def compose_serial_number():
+    now = datetime.datetime.utcnow()
+    month = now.month
+    if now.month < 10:
+        month = '0{}'.format(now.month)
+    day = now.day
+    if now.day < 10:
+        day = '0{}'.format(now.day)
+    hour = now.hour
+    if now.hour < 10:
+        hour = '0{}'.format(now.hour)
+    # let's suppose the zone file is not updated more than once per hour
+    serial_number = '{}{}{}{}'.format(now.year, month, day, hour)
+    return serial_number
+
+
+serial_number = compose_serial_number()
+refresh = '172800'
+update_retry = '900'
+expiry = '1209600'
+nxdomain_ttl = '3600'
 
 
 def delete_domain(record):
