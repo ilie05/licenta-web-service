@@ -284,26 +284,36 @@ def main():
         records = collection.find({'modify_time': {'$gte': time_frame}})
         for record in records:
             print('processing record ...')
-            print(str(record['_id']))
+            print(str(record['domain_details']['domain_name']))
 
-            if record['status'] == 'delete':
-                delete_domain(record)
-                print("Records deleted:")
-                print(str(record['_id']))
-            elif record['status'] == 'insert':
-                integrate_zone(record)
-                print("Record inserted:")
-                print(str(record['_id']))
-            else:
-                print("Wrong record status: ")
-                print(str(record['_id']))
-
-            # restart bind9 server
             try:
+                if record['status'] == 'delete':
+                    delete_domain(record)
+                    print("Records deleted:")
+                    print(str(record['domain_details']['domain_name']))
+                elif record['status'] == 'insert':
+                    integrate_zone(record)
+                    print("Record inserted:")
+                    print(str(record['domain_details']['domain_name']))
+                else:
+                    print("Wrong record status: ")
+                    print(str(record['domain_details']['domain_name']))
+
+                # restart bind9 server
                 subprocess.check_output(['systemctl', 'restart', 'named.service'])
             except Exception as e:
                 print(str(e))
                 print("BIND 9 server crashed after {0} operation on record {1}".format(record['status'], record))
+                print("Trying to remove the record and restart the BIND server...")
+
+                # try to delete last record that crashed BIND server and try to restart again the BIND server
+                delete_domain(record)
+                try:
+                    subprocess.check_output(['systemctl', 'restart', 'named.service'])
+                    print('Record {} was removed successful. BIND server was restarted.'.format(record))
+                except Exception as e:
+                    print(str(e))
+                    print('BIND 9 server crashed after second attempt to restart')
 
         print("\nWaiting...\n")
         sleep(QUERY_INTERVAL)
