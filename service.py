@@ -1,9 +1,10 @@
 import pymongo
 import os
-from time import sleep
+from time import sleep, time
 import datetime
 import subprocess
 import shutil
+import math
 
 client = pymongo.MongoClient('mongodb://192.168.56.1:27017/')
 db = client['licenta']
@@ -295,9 +296,13 @@ def create_direct_zone_file(record, zone_file_path):
 
 
 def main():
+    processing_time = 0
     while True:
-        time_frame = datetime.datetime.utcnow() - datetime.timedelta(seconds=QUERY_INTERVAL)
+        time_frame = datetime.datetime.utcnow() - datetime.timedelta(
+            seconds=(QUERY_INTERVAL + math.floor(processing_time)))
         records = collection.find({'modify_time': {'$gte': time_frame}})
+
+        start_time = time()
         for record in records:
             print('processing record ...')
             print(str(record['domain_details']['domain_name']))
@@ -330,6 +335,7 @@ def main():
                 except Exception as e:
                     print(str(e))
                     print('BIND 9 server crashed after second attempt to restart')
+        processing_time = time() - start_time
 
         print("\nWaiting...\n")
         sleep(QUERY_INTERVAL)
