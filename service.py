@@ -5,7 +5,8 @@ import datetime
 import subprocess
 import shutil
 
-serial_number = '2003080800'
+now = datetime.datetime.utcnow()
+serial = '{}{}{}{}{}{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
 refresh = '172800'
 update_retry = '900'
 expiry = '1209600'
@@ -19,7 +20,7 @@ var_named_folder = '/var/named/'
 etc_named_folder = '/etc/named/'
 
 # time interval for query the mongo collection
-QUERY_INTERVAL = 240
+QUERY_INTERVAL = 60
 
 
 def delete_domain(record):
