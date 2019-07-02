@@ -6,7 +6,7 @@ import subprocess
 import shutil
 
 now = datetime.datetime.utcnow()
-serial = '{}{}{}{}{}{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+serial_number = '{}{}{}{}{}{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
 refresh = '172800'
 update_retry = '900'
 expiry = '1209600'
@@ -303,14 +303,14 @@ def main():
                 subprocess.check_output(['systemctl', 'restart', 'named.service'])
             except Exception as e:
                 print(str(e))
-                print("BIND 9 server crashed after {0} operation on record {1}".format(record['status'], record))
-                print("Trying to remove the record and restart the BIND server...")
+                print("\nBIND 9 server crashed after {0} operation on record: {1}\n".format(record['status'], record))
+                print("Trying to remove the record and restart the BIND server...\n\n")
 
                 # try to delete last record that crashed BIND server and try to restart again the BIND server
                 delete_domain(record)
                 try:
                     subprocess.check_output(['systemctl', 'restart', 'named.service'])
-                    print('Record {} was removed successful. BIND server was restarted.'.format(record))
+                    print('Record {} was removed successful. BIND server was restarted.'.format(record['_id']))
                 except Exception as e:
                     print(str(e))
                     print('BIND 9 server crashed after second attempt to restart')
