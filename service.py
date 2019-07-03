@@ -318,7 +318,7 @@ def main():
                     print(str(record['domain_details']['domain_name']))
                 else:
                     print("Wrong record status: ")
-                    print(str(record['domain_details']['domain_name']))
+                    print('Domain name: ' + str(record['domain_details']['domain_name']))
 
                 # restart bind9 server
                 subprocess.check_output(['systemctl', 'restart', 'named.service'])
